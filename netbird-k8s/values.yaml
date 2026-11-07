@@ -1,0 +1,115 @@
+global:
+  namespace: netbird
+
+dashboard:
+  enabled: true
+
+  ingress:
+    enabled: true
+    className: traefik
+
+    hosts:
+      - host: netbird.test
+        paths:
+          - path: /
+            pathType: Prefix
+
+backend:
+  split:
+    management:
+      enabled: true
+
+      server:
+        singleAccountModeDomain: netbird.selfhosted
+        dnsDomain: netbird.selfhosted
+        disableLegacyPort: true
+
+      persistence:
+        enabled: true
+        size: 1Gi
+
+      config:
+        dataStoreEncryptionKeyRef:
+          name: netbird-secrets
+          key: DATASTORE_ENCRYPTION_KEY
+
+        relay:
+          addresses:
+            - rel://192.168.0.11:80/relay
+          credentialsTTL: 24h
+
+        signal:
+          proto: http
+          uri: 192.168.0.11:80
+
+        datadir: /var/lib/netbird
+
+      ingress:
+        http:
+          enabled: true
+          className: traefik
+
+          hosts:
+            - host: netbird.test
+              paths:
+                - path: /api
+                  pathType: Prefix
+                - path: /oauth2
+                  pathType: Prefix
+
+        grpc:
+          enabled: true
+          className: traefik
+
+          hosts:
+            - host: netbird.test
+              paths:
+                - path: /management.ManagementService
+                  pathType: Prefix
+                - path: /management.ProxyService
+                  pathType: Prefix
+
+    signal:
+      enabled: true
+
+      config:
+        logLevel: info
+
+      ingress:
+        enabled: true
+        className: traefik
+
+        hosts:
+          - host: netbird.test
+            paths:
+              - path: /signalexchange.SignalExchange
+                pathType: Prefix
+
+    relay:
+      enabled: true
+
+      config:
+        exposedAddress: rel://192.168.0.11:80/relay
+
+        authSecretRef:
+          name: netbird-secrets
+          key: RELAY_AUTH_SECRET
+
+        stun:
+          enabled: true
+          ports:
+            - 3478
+
+      ingress:
+        enabled: true
+        className: traefik
+
+        hosts:
+          - host: netbird.test
+            paths:
+              - path: /relay
+                pathType: Prefix
+
+      stunService:
+        enabled: true
+        type: LoadBalancer

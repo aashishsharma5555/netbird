@@ -1,0 +1,122 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  annotations:
+    deployment.kubernetes.io/revision: "4"
+    meta.helm.sh/release-name: netbird
+    meta.helm.sh/release-namespace: netbird
+  creationTimestamp: "2026-11-06T05:52:06Z"
+  generation: 4
+  labels:
+    app.kubernetes.io/instance: netbird
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: netbird-management
+    app.kubernetes.io/version: 0.46.0
+    helm.sh/chart: netbird-1.9.0
+  name: netbird-management
+  namespace: netbird
+  resourceVersion: "22243"
+  uid: 897c8e82-414f-4616-8eee-bc16f6679525
+spec:
+  progressDeadlineSeconds: 600
+  replicas: 1
+  revisionHistoryLimit: 10
+  selector:
+    matchLabels:
+      app.kubernetes.io/instance: netbird
+      app.kubernetes.io/name: netbird-management
+  strategy:
+    rollingUpdate:
+      maxSurge: 25%
+      maxUnavailable: 25%
+    type: RollingUpdate
+  template:
+    metadata:
+      annotations:
+        checksum/config: d75527e05573c1612af69814059778900237661ee0f691c237991f7afa3a84af
+        kubectl.kubernetes.io/restartedAt: "2026-11-07T11:00:27+05:30"
+      labels:
+        app.kubernetes.io/instance: netbird
+        app.kubernetes.io/name: netbird-management
+    spec:
+      containers:
+      - args:
+        - --port=80
+        - --log-file=console
+        - --log-level=info
+        - --disable-anonymous-metrics=false
+        - --single-account-mode-domain=netbird.selfhosted
+        - --dns-domain=netbird.selfhosted
+        image: netbirdio/management:0.46.0
+        imagePullPolicy: IfNotPresent
+        livenessProbe:
+          failureThreshold: 3
+          initialDelaySeconds: 15
+          periodSeconds: 10
+          successThreshold: 1
+          tcpSocket:
+            port: http
+          timeoutSeconds: 3
+        name: netbird-management
+        ports:
+        - containerPort: 80
+          name: http
+          protocol: TCP
+        - containerPort: 33073
+          name: grpc
+          protocol: TCP
+        - containerPort: 9090
+          name: metrics
+          protocol: TCP
+        readinessProbe:
+          failureThreshold: 3
+          initialDelaySeconds: 15
+          periodSeconds: 10
+          successThreshold: 1
+          tcpSocket:
+            port: http
+          timeoutSeconds: 3
+        resources: {}
+        securityContext: {}
+        terminationMessagePath: /dev/termination-log
+        terminationMessagePolicy: File
+        volumeMounts:
+        - mountPath: /etc/netbird
+          name: config
+        - mountPath: /var/lib/netbird
+          name: management
+      dnsPolicy: ClusterFirst
+      restartPolicy: Always
+      schedulerName: default-scheduler
+      securityContext: {}
+      serviceAccount: netbird-management
+      serviceAccountName: netbird-management
+      terminationGracePeriodSeconds: 30
+      volumes:
+      - configMap:
+          defaultMode: 420
+          name: netbird-management
+        name: config
+      - name: management
+        persistentVolumeClaim:
+          claimName: netbird-management
+status:
+  availableReplicas: 1
+  conditions:
+  - lastTransitionTime: "2026-11-07T05:30:48Z"
+    lastUpdateTime: "2026-11-07T05:30:48Z"
+    message: Deployment has minimum availability.
+    reason: MinimumReplicasAvailable
+    status: "True"
+    type: Available
+  - lastTransitionTime: "2026-11-06T06:10:53Z"
+    lastUpdateTime: "2026-11-07T05:30:48Z"
+    message: ReplicaSet "netbird-management-756bd8cdcc" has successfully progressed.
+    reason: NewReplicaSetAvailable
+    status: "True"
+    type: Progressing
+  observedGeneration: 4
+  readyReplicas: 1
+  replicas: 1
+  terminatingReplicas: 0
+  updatedReplicas: 1

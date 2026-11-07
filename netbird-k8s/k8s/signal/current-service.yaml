@@ -1,0 +1,37 @@
+apiVersion: v1
+kind: Service
+metadata:
+  annotations:
+    meta.helm.sh/release-name: netbird
+    meta.helm.sh/release-namespace: netbird
+  creationTimestamp: "2026-11-06T05:52:06Z"
+  labels:
+    app.kubernetes.io/instance: netbird
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: netbird-signal
+    app.kubernetes.io/version: 0.46.0
+    helm.sh/chart: netbird-1.9.0
+  name: netbird-signal
+  namespace: netbird
+  resourceVersion: "2771"
+  uid: 4862a210-13f5-4caf-bad8-864d0fb745b5
+spec:
+  clusterIP: 10.43.102.251
+  clusterIPs:
+  - 10.43.102.251
+  internalTrafficPolicy: Cluster
+  ipFamilies:
+  - IPv4
+  ipFamilyPolicy: SingleStack
+  ports:
+  - name: grpc
+    port: 80
+    protocol: TCP
+    targetPort: grpc
+  selector:
+    app.kubernetes.io/instance: netbird
+    app.kubernetes.io/name: netbird-signal
+  sessionAffinity: None
+  type: ClusterIP
+status:
+  loadBalancer: {}

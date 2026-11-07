@@ -1,0 +1,34 @@
+
+# Local secrets and environment overrides
+values-local.yaml
+values-keycloak.yaml
+*.bak
+*.bak-*
+.env
+.env.*
+*.pem
+*.key
+kubeconfig
+
+# Sensitive configuration
+values-local.yaml
+values-keycloak.yaml
+.env
+.env.*
+*.pem
+*.key
+*.bak
+*.bak-*
+kubeconfig
+
+# Local secrets
+values-local.yaml
+values-keycloak.yaml
+*.bak
+*.backup
+*.bad
+.env
+.env.*
+kubeconfig
+k3s.yaml
+netbird-rendered.yaml
