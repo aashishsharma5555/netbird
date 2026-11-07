@@ -82,7 +82,7 @@ require (
 	github.com/mdp/qrterminal/v3 v3.2.1
 	github.com/miekg/dns v1.1.72
 	github.com/mitchellh/hashstructure/v2 v2.0.2
-	github.com/moby/moby/api v1.54.1
+	github.com/moby/moby/api v1.56.1
 	github.com/modelcontextprotocol/go-sdk v1.8.0
 	github.com/netbirdio/dex v0.244.1-0.20261021152327-0319b501f1a6
 	github.com/netbirdio/dex/api/v2 v2.0.0-20261021115841-9f3e6d4c2ce3
