@@ -1,0 +1,177 @@
+global:
+  namespace: netbird
+
+management:
+  enabled: true
+  useBackwardsGrpcService: true
+  image:
+    tag: "0.82.1"
+  podCommand:
+    args:
+      - --port=80
+      - --log-file=console
+      - --log-level=info
+      - --single-account-mode-domain=netbird.selfhosted
+      - --dns-domain=netbird.selfhosted
+  configmap: |-
+    {
+      "Stuns": [{"Proto": "udp", "URI": "stun:stun.netbird.io:3478"}],
+      "Relay": {
+        "Addresses": ["rel://20.242.192.58:80/relay"],
+        "CredentialsTTL": "24h",
+        "Secret": "{{ .RELAY_AUTH_SECRET }}"
+      },
+      "Signal": {"Proto": "http", "URI": "20.242.192.58:80"},
+      "Datadir": "/var/lib/netbird/",
+      "DataStoreEncryptionKey": "{{ .DATASTORE_ENCRYPTION_KEY }}",
+      "StoreConfig": {"Engine": "sqlite"},
+      "ReverseProxy": {
+        "TrustedHTTPProxies": ["10.244.0.0/16"],
+        "TrustedPeers": ["10.244.0.0/16"]
+      },
+      "EmbeddedIdP": {
+        "Enabled": true,
+        "Issuer": "http://20.242.192.58/oauth2",
+        "Storage": {
+          "Type": "sqlite3",
+          "Config": {"File": "/var/lib/netbird/idp.db"}
+        },
+        "Owner": {
+          "Email": "admin@netbird.local",
+          "Hash": "{{ .INITIAL_ADMIN_PASSWORD_HASH }}"
+        },
+        "DashboardRedirectURIs": [
+          "http://20.242.192.58/#callback",
+          "http://20.242.192.58/#silent-callback"
+        ],
+        "CLIRedirectURIs": ["http://localhost:53000/"]
+      }
+    }
+  envFromSecret:
+    DATASTORE_ENCRYPTION_KEY: netbird-secrets/DATASTORE_ENCRYPTION_KEY
+    RELAY_AUTH_SECRET: netbird-secrets/RELAY_AUTH_SECRET
+    INITIAL_ADMIN_PASSWORD_HASH: netbird-secrets/INITIAL_ADMIN_PASSWORD_HASH
+  persistentVolume:
+    enabled: true
+    size: 1Gi
+    storageClass: managed-csi
+  ingress:
+    enabled: false
+  ingressGrpc:
+    enabled: false
+
+signal:
+  enabled: true
+  image:
+    tag: "0.82.1"
+  ingress:
+    enabled: false
+
+relay:
+  enabled: true
+  image:
+    tag: "0.82.1"
+  env:
+    NB_LISTEN_ADDRESS: ":33080"
+    NB_EXPOSED_ADDRESS: "rel://20.242.192.58:80/relay"
+    NB_LOG_LEVEL: info
+  envFromSecret:
+    NB_AUTH_SECRET: netbird-secrets/RELAY_AUTH_SECRET
+  ingress:
+    enabled: false
+
+dashboard:
+  enabled: true
+  replicaCount: 2
+  image:
+    tag: "v2.96.1"
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+  nodeSelector:
+    kubernetes.azure.com/agentpool: agentpool2
+  topologySpreadConstraints:
+    - maxSkew: 1
+      topologyKey: kubernetes.io/hostname
+      whenUnsatisfiable: DoNotSchedule
+      nodeAffinityPolicy: Honor
+      nodeTaintsPolicy: Honor
+      labelSelector:
+        matchLabels:
+          app.kubernetes.io/instance: netbird
+          app.kubernetes.io/name: netbird-dashboard
+  env:
+    NETBIRD_MGMT_API_ENDPOINT: "http://20.242.192.58"
+    NETBIRD_MGMT_GRPC_API_ENDPOINT: "http://20.242.192.58"
+    AUTH_AUTHORITY: "http://20.242.192.58/oauth2"
+    AUTH_AUDIENCE: netbird-dashboard
+    AUTH_CLIENT_ID: netbird-dashboard
+    USE_AUTH0: "false"
+    AUTH_SUPPORTED_SCOPES: "openid profile email offline_access api groups"
+    AUTH_REDIRECT_URI: /#callback
+    AUTH_SILENT_REDIRECT_URI: /#silent-callback
+    NETBIRD_TOKEN_SOURCE: accessToken
+  ingress:
+    enabled: false
+
+extraManifests:
+  - apiVersion: gateway.networking.k8s.io/v1
+    kind: HTTPRoute
+    metadata:
+      name: netbird-http
+      namespace: netbird
+    spec:
+      parentRefs:
+        - name: netbird-gateway
+      rules:
+        - matches:
+            - path:
+                type: PathPrefix
+                value: /api
+            - path:
+                type: PathPrefix
+                value: /oauth2
+          backendRefs:
+            - name: netbird-management
+              port: 80
+        - matches:
+            - path:
+                type: PathPrefix
+                value: /relay
+          backendRefs:
+            - name: netbird-relay
+              port: 33080
+        - matches:
+            - path:
+                type: PathPrefix
+                value: /
+          backendRefs:
+            - name: netbird-dashboard
+              port: 80
+  - apiVersion: gateway.networking.k8s.io/v1
+    kind: GRPCRoute
+    metadata:
+      name: netbird-grpc
+      namespace: netbird
+    spec:
+      parentRefs:
+        - name: netbird-gateway
+      rules:
+        - matches:
+            - method:
+                service: management.ManagementService
+            - method:
+                service: management.ProxyService
+          backendRefs:
+            - name: netbird-management-grpc
+              port: 33073
+        - matches:
+            - method:
+                service: signalexchange.SignalExchange
+          backendRefs:
+            - name: netbird-signal
+              port: 80
